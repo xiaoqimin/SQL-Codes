@@ -1,0 +1,240 @@
+#Same schema as used For Extra Exercises 3, 4 and 5
+
+create database dm_temp;
+use dm_temp;
+
+#creating tables
+create table student
+(sid int not null primary key,
+ sname varchar(15) not null);
+
+create table course
+(cid char(8) not null primary key,
+ cname varchar(15) not null);
+
+create table registration
+(sid int not null,
+ cid char(8) not null,
+ semester char(6) not null,
+ constraint registration_pk primary key(sid, cid),
+ constraint registration_fk1 foreign key(sid) references student(sid),
+ constraint registration_fk2 foreign key(cid) references course(cid));
+
+create table faculty
+(fid int not null primary key,
+ fname varchar(15) not null);
+
+create table qualification
+(fid int not null,
+ cid char(8) not null,
+ date_qualified date not null,
+ constraint qualification_pk primary key(fid, cid),
+ constraint qualification_fk1 foreign key(fid) references faculty(fid),
+ constraint qualification_fk2 foreign key(cid) references course(cid));
+
+create table assessment
+(aid int not null,
+ aname varchar(15) not null, 
+ weight decimal(3,2) not null, 
+ constraint assessment_pk primary key(aid));
+
+create table performance
+(sid int not null,
+ cid char(8) not null,
+ aid int not null, 
+ mark int not null,
+ constraint performance_pk primary key(sid, cid, aid),
+ constraint performance_fk1 foreign key(sid, cid) references registration(sid,cid),
+ constraint performance_fk2 foreign key(aid) references assessment(aid));
+
+create table room
+(rid int not null primary key,
+ type varchar(20) not null,
+ capacity int not null);
+
+
+#inserting data
+insert into student values
+(38214, 'Ama'),
+(54907, 'Bob'),
+(66324, 'Clark'),
+(70542, 'Dave'),
+(15789, 'Eme');
+
+insert into course values
+('ISM 3113', 'Syst Analysis'),
+('ISM 3112', 'Syst Design'),
+('ISM 4212', 'Database'),
+('ISM 4930', 'Networking');
+
+insert into registration values
+(38214, 'ISM 4212', 'I-2001'),
+(54907, 'ISM 4212', 'I-2001'),
+(54907, 'ISM 4930', 'I-2001'),
+(54907, 'ISM 3112', 'I-2001'),
+(54907, 'ISM 3113', 'I-2001'),
+(66324, 'ISM 3113', 'I-2002'),
+(66324, 'ISM 3112', 'I-2001'),
+(70542, 'ISM 3112', 'I-2001'),
+(70542, 'ISM 4212', 'I-2002');
+
+insert into faculty values
+(2143, 'Ama'),
+(3467, 'Berry'),
+(4756, 'Coke'),
+(5123, 'Dave'),
+(1789, 'Ester');
+
+insert into qualification values
+(2143, 'ISM 3112', '1988-09-01'),
+(2143, 'ISM 3113', '1988-05-01'),
+(2143, 'ISM 4212', '1995-01-01'),
+(2143, 'ISM 4930', '2000-11-25'),
+(3467, 'ISM 4212', '1995-06-01'),
+(3467, 'ISM 4930', '1996-09-01'),
+(4756, 'ISM 3113', '1991-09-01'),
+(4756, 'ISM 3112', '1991-07-01'),
+(5123, 'ISM 3112', '1992-06-01');
+
+insert into room values
+(1, 'meeting room', 6),
+(2, 'class room', 20),
+(3, 'class room', 20),
+(4, 'meeting room', 3),
+(5, 'class room', 40),
+(6, 'seminar room', 50),
+(7, 'seminar room', 70),
+(8, 'meeting room', 3),
+(9, 'study room', 2);
+
+insert into assessment values
+(1, 'Midterm Exam', 0.3),
+(2, 'Final Exam', 0.4),
+(3, 'Project', 0.3);
+
+insert into performance values
+(38214, 'ISM 4212', 1, 64),
+(38214, 'ISM 4212', 2, 79),
+(38214, 'ISM 4212', 3, 80),
+(54907, 'ISM 4212', 1, 92),
+(54907, 'ISM 4212', 2, 89),
+(54907, 'ISM 4212', 3, 94),
+(54907, 'ISM 4930', 1, 60),
+(54907, 'ISM 4930', 2, 72),
+(54907, 'ISM 4930', 3, 68),
+(54907, 'ISM 3112', 1, 54),
+(54907, 'ISM 3112', 2, 61),
+(54907, 'ISM 3112', 3, 70),
+(54907, 'ISM 3113', 1, 88),
+(54907, 'ISM 3113', 2, 93),
+(54907, 'ISM 3113', 3, 98),
+(66324, 'ISM 3113', 1, 78),
+(66324, 'ISM 3113', 2, 82),
+(66324, 'ISM 3113', 3, 66),
+(66324, 'ISM 3112', 1, 67),
+(66324, 'ISM 3112', 2, 72),
+(66324, 'ISM 3112', 3, 70),
+(70542, 'ISM 3112', 1, 68),
+(70542, 'ISM 3112', 2, 77),
+(70542, 'ISM 3112', 3, 74),
+(70542, 'ISM 4212', 1, 84),
+(70542, 'ISM 4212', 2, 78),
+(70542, 'ISM 4212', 3, 65);
+
+create procedure getstudentrecords()
+	select * from student;
+call getstudentrecords();
+
+create procedure getperformancerecords()
+	select sid as student, cid as course, mark from performance;
+call getperformancerecords();
+
+create procedure getstudentbycourse(in courseid char(8))
+	select s.sname, s.sid as student from registration r, student s 
+    where r.sid = s.sid and cid = courseid;
+call getstudentbycourse('ism 3113');
+
+create procedure getfacultycountbycourse(in courseid char(8), out total int)
+	set total = (select count(*) from qualification 
+	where cid = 'courseid');
+call getfacultycountbycourse('ism 3112', @totalfac);
+select @totalfac;
+
+delimiter $$
+create procedure getsumtopxmarks(in x int, in courseid char(8), out total int)
+begin
+	declare cnt int default 1;
+    declare maxloop int;
+    declare currmax int;
+    declare nextmax int;
+    
+    set total = 0;
+    set maxloop = (select count(distinct mark) 
+				   from performance where cid= courseid);
+	if (maxloop) >=1 then
+		set currmax = (select max(mark) 
+					   from performance where cid = courseid);
+		set total = currmax;
+    
+		while cnt < x and cnt < maxloop
+    
+		do 
+			set nextmax = (select max(mark) from performance
+							where cid = courseid and mark < currmax);
+			set cnt = cnt +1;
+			set currmax = nextmax;
+			set total = total + nextmax;
+		end while;
+	end if;
+end$$
+delimiter ;
+call getsumtopxmarks(3, 'ism 3113', @totals);
+select @totals;
+
+#trigger
+
+delimiter $$
+create trigger beforeRegistrationInsert1 
+before insert on registration for each row 
+begin
+	declare courseCount int;
+    #need to check how many courses this student has for the semester
+    set courseCount = (select count(*) from registration 
+					   where sid = new.sid and semester = new.semester);
+    #if already 5 courses, throw error 
+    if (courseCount = 5) then 
+		SIGNAL sqlstate '45000' set message_text = 
+        'Course registration rejected, student already has 5 courses';
+	end if; 
+end$$
+delimiter ;
+
+select * from registration where sid = 54907 and semester = 'i-2001';
+Select * from course;
+Insert into course values ('ISM 1111', 'Course 1');
+Insert into course values ('ISM 2222', 'Course 2');
+
+Select * from registration where sid = 54907;
+Insert into registration values (54907, 'ISM 1111', 'I-2001');
+Insert into registration values (54907, 'ISM 2222', 'I-2001');
+
+select * from performance p, assessment a where a.aid = p.aid 
+and sid = 38214 and cid = 'ism 4212';
+
+Create table performance_log
+(sid int not null,
+cid char(8) not null,
+aid int not null,
+Oldmark int not null,
+Updatedate datetime not null,
+Constraint performance_log_pk primary key(sid, cid, aid, UpdateDate),
+Constraint performance_log_fk1 foreign key(sid, cid, aid) references performance(sid, cid, aid));
+
+Select * from performance_log;
+
+create trigger afterPerformanceUpdate 
+after update on Performance for each row
+insert into performance_log values (old.sid, old.cid, old.aid, old.mark, current_timestamp());
+
+Select * from performance where sid = 38214 and cid = 'ISM 4212' and aid=1;
+Update performance set mark=70 where sid = 38214 and cid = 'ISM 4212' and aid=1;
